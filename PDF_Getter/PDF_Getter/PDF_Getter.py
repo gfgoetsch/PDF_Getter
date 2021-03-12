@@ -1,11 +1,14 @@
+
 import sys
 sys.path.append('C:/Users/Garrison/Documents/13th_Grade/geoparsing/SUMMER/env/Lib/site-packages/weasyprint')
 import pdfkit
 import os
 import shutil
 import time
+import multiprocessing
+import concurrent.futures
 
-
+#%%%%%%%%%%%%%%%%%%%%%%% HERE AND BELOW IS CONFIGURATION ##########################################
 opts = {
  'page-size': 'Letter',
  'orientation': 'Landscape',
@@ -29,19 +32,19 @@ dest_Folder = r"C:/Users/Garrison/Documents/13th_Grade/geoparsing/SUMMER/PDFS"
     #This is the folder path you want PDFs to be written to.
 
 global newpath
+global done_docs
+global errors
+errors = 0
+done_docs = 0
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% HERE AND ABOVE IS CONFIGURATION %%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-def Make_Folder_Name():
+def Find_Time():
     lcTime = time.strftime("%Y%m%d%H%M", time.localtime())
-    global clock
     clock = lcTime[0 : 4] + "_" + lcTime[4 : 6] + "_" + lcTime[6 : 8] + "_" + lcTime[8 : 10] + "." + lcTime[10 : 12]
     global newpath
     newpath =  dest_Folder + "/" + str(clock)
-    #This function creates the variable newpath, taking elements from the time, creating a string
-    #that should be unique, unless you create many new folders in rapid succession.
-    #This new folder is where new PDFs will be written to later on.
-
+    Make_Folder()
 def Make_Folder():
-    global newpath
     Check_Folder_Name()
 def Check_Folder_Name():
     global newpath
@@ -49,72 +52,55 @@ def Check_Folder_Name():
         newpath = newpath + "_d"
         Make_Folder()
     else:
-        os.makedirs(newpath)
-    #This function, alongside Check_Folder_Name() creates a loop that evaluates whether or not newpath already exists...
-    #If newpath exists, these functions append "_d" (short for duplicate) onto newpath and then reevaluates if newpath
-    #exists.  Once newpath no longer exists, these functions create a new folder in dest_folder using newpath.
-    #This new (guaranteed unique) folder is where new PDFs will be written to later on.
+        os.mkdir(newpath)
+    #The above functions create a folder with a unique name based on the time.
 
-def PDF_Time():
-    Make_Folder_Name()
-    Make_Folder()
-    n = -1
-    errors = 0
-    done = 0
-    global newpath
-    for x in url_list:
-        try:
-            n += 1
-            std = done
-            segments = x.split('.')
-            name = str(segments[1])
-            #1
-            
-            if os.path.exists(newpath + "/" + name + "_pdf.pdf"):
-                name = name + "_" + str(n)
-            global opts
-            pdfkit.from_url(x, newpath + "/" + name + "_pdf.pdf", options=opts, configuration=config)
-            done += 1
-            print("Done printing document #" + str(n) + "!")
-        except Exception as e:
-            errors += 1
-            print(e)
-            if os.path.exists(newpath + "/" + name + "_pdf.pdf"):
-                error_file_name = "000_Errors_with_pdfs.txt"
-            else:
-                error_file_name = "000_Errors_no_pdfs.txt"
-            f=open(newpath + "/" + error_file_name, "a+")
-            f.writelines(x)
-    if os.path.exists(newpath + "/000_Errors_with_pdfs.txt"):
-        if os.path.exists(newpath + "/000_Errors_no_pfds.txt"):
-            print("---")
-            print("---")
-            print("Errors occurred, both with and without creating PDFs.")
-            errorless = False
+def Get_PDF(url):
+    global done_docs
+    global errors
+    name = "placeholder"
+    n1 = str(url)
+    n2 = n1.split('.')
+    n3 = []
+    for n in n2:
+        if "www" in n:
+            pass
+        elif "http" in n:
+            pass
+        elif "com" in n:
+            pass
         else:
-            print("---")
-            print("---")
-            print("All errors created PDFs.")
-            errorless = False
-    else:
-        if os.path.exists(newpath + "/000_Errors_no_pfds.txt"):
-            print("---")
-            print("---")
-            print("All errors failed to create PDFs.")
-            errorless = False
-        else:
-            print("---")
-            print("---")
-            print("NO ERRORS!  WOOHOO!")
-            errorless = True
-    print("Done printing all documents!")
-    if errorless == False:
-        print("There were " + str(errors) + " errors.")
+            n3.append(n)
+    n4 = str(n3)    
+    if os.path.exists(newpath + "/" + n4 + "_pdf.pdf"):
+        n4
+    try:
+        pdfkit.from_url(url, newpath + "/" + n4 + "_pdf.pdf", options=opts, configuration=config)
+        done_docs += 1
+    except Exception as e:
+           print(e)
+   
+def Cleanup():
+    print("Done printing all docs!")
+
+
+errors = 0
+done = 0
+if __name__ == "__main__":
+    Find_Time()
+    f_list = []
+    for url in url_list:
+        p = multiprocessing.Process(target=Get_PDF, args=url)
+        p.start()
+        f_list.append(p)
+    for f in f_list:
+        f.join()
+Cleanup()
+
+        
     #This function calls on other functions to create a new, unique folder.
     #Then, this function generates PDFs from all urls in the list url_list and writes them to the new folder.
-    #It also prints helpful updates along the way. 
-#here is an edit, just to test
-PDF_Time()
+    #It also prints helpful updates along the way.
 
 #to do:
     #make an exception so that webpages that do not work are skipped
