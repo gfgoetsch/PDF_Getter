@@ -88,8 +88,17 @@ if __name__ == "__main__":
         p.start()
         f_list.append(p)
         iter += 1
-    for f in f_list:
-        f.join()
+    TIMEOUT = 20
+    start = time.time()
+    while time.time() - start <= TIMEOUT:
+        if not any (p.is_alive() for p in f_list):
+            break
+    else:
+        print("Timed out, killing all processes!")
+        for p in f_list:
+            p.terminate()
+            p.join()
+
     Cleanup()
 
 
